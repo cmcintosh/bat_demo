@@ -1,0 +1,145 @@
+<?php
+
+/**
+ * @file
+ * Manages events for Units and displaying dates on the jquery
+ * FullCalendar plugin.
+ */
+
+define('BAT_EVENT_CALENDAR_ADMIN_STYLE', 1);
+define('BAT_EVENT_CALENDAR_GENERIC_STYLE', 2);
+
+
+
+/**
+ * Implements hook_menu().
+ */
+function bat_event_ui_menu() {
+  $items = array();
+
+  $items['admin/bat/calendar'] = array(
+    'title' => 'Calendar',
+    'page callback' => 'bat_event_ui_calendar_page',
+    'page arguments' => array(3, 4),
+    'access arguments' => array('administer calendar events'),
+    'type' => MENU_CALLBACK,
+    'weight' => 20,
+  );
+
+  return $items;
+}
+
+
+/**
+ * Callback for admin/bat/events/
+ */
+function bat_event_ui_calendar_page($unit_type, $event_type) {
+  // Set the page title.
+  drupal_set_title(t('View Event Data'));
+
+
+  // Pick what modal style to use
+  $calendar_settings['modal_style'] = 'default';
+
+  if ($type = bat_event_type_load($event_type)) {
+    $event_granularity = $type->event_granularity;
+  }
+  else {
+    $event_granularity = 'both';
+  }
+
+  $event_types = bat_event_get_types();
+  $ev_type = reset($event_types);
+  $event_type = $ev_type->type;
+
+  // All Drupal JS settings inside the batCalendar object.
+  $fc_user_settings = array(
+    'batCalendar' => array(
+      'unitType' => $unit_type,
+      'eventType' => $event_type,
+      'eventGranularity' =>  $event_granularity,
+    ),
+  );
+
+  $calendar_settings['user_settings'] = $fc_user_settings;
+  $calendar_settings['calendar_id'] = 'fullcalendar-scheduler';
+
+
+  // Drupal I love you so - render the form and then send it as markup - the two step
+  // is to avoid a strict warning for php 5.6 and over
+  $selection_form = drupal_get_form('bat_event_ui_event_type_form');
+  $form_markup = drupal_render($selection_form);
+
+  $render_array = array(
+    'event_type_form' => array(
+      '#markup' => $form_markup,
+    ),
+    'calendar' => array(
+      '#theme' => 'bat_fullcalendar',
+      '#calendar_settings' => $calendar_settings,
+    ),
+  );
+
+  return $render_array;
+}
+
+/**
+ *
+ */
+function bat_event_ui_event_type_form($form, &$form_state) {
+  $form = array();
+  $event_types = bat_event_get_types();
+  foreach ($event_types as $event_type) {
+    $event_types_options[$event_type->type] = $event_type->label;
+  }
+
+  $ev_types = array_keys($event_types_options);
+  $ev_type = reset($ev_types);
+
+  $event_types_options = array('all' => t('All')) + $event_types_options;
+
+  $form['event_types'] = array(
+    '#type' => 'select',
+    '#title' => 'Event type',
+    '#options' => $event_types_options,
+    '#default_value' => (arg(4)) ? arg(4) : $ev_type,
+  );
+
+  $types = bat_unit_get_types();
+  if (!empty($types)) {
+    $types_options = array(
+      'all' => t('All'),
+    );
+    foreach ($types as $type) {
+      $types_options[$type->type_id] = $type->name;
+    }
+    $form['unit_type'] = array(
+      '#type' => 'select',
+      '#title' => 'Unit type',
+      '#options' => $types_options,
+      '#default_value' => (arg(3)) ? arg(3) : 'all',
+    );
+  }
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Change',
+  );
+
+  return $form;
+}
+
+/**
+ *
+ */
+function bat_event_ui_event_type_form_submit($form, &$form_state) {
+  // Check the type.
+  isset($form_state['values']['unit_type']) ? $type = $form_state['values']['unit_type'] : $type = arg(3);
+
+  // Check the event type.
+  isset($form_state['values']['event_types']) ? $event_type = $form_state['values']['event_types'] : $event_type = arg(4);
+
+  $form_state['redirect'] = arg(0) . '/' . arg(1) . '/' . arg(2) . '/' . $type . '/' . $event_type;
+}
+
+
