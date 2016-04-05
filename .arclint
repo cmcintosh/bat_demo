@@ -1,0 +1,15 @@
+{
+  "linters": {
+    "codestandards": {
+      "type": "phpcs"
+    },
+    "jshint": {
+      "type": "jshint",
+      "include": "(\\.js$)"
+    },
+    "csslint" : {
+      "type": "csslint",
+      "include": "(\\.css$)"
+    }
+  }
+}
