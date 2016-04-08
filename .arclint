@@ -1,7 +1,8 @@
 {
   "linters": {
     "codestandards": {
-      "type": "phpcs"
+      "type": "phpcs",
+      "exclude": "(.*tests\/.*$)"
     },
     "jshint": {
       "type": "jshint",
